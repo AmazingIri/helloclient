@@ -3,9 +3,6 @@ import com.datastax.driver.core.Cluster.Builder;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
-import com.sun.org.apache.xerces.internal.xs.StringList;
-
-import java.nio.charset.Charset;
 import java.util.*;
 
 public class CassandraWriteTest {
@@ -14,7 +11,6 @@ public class CassandraWriteTest {
         Builder builder = Cluster.builder();
         builder.addContactPoint("127.0.0.1");
 
-        // socket 链接配置
         SocketOptions socketOptions = new SocketOptions().setKeepAlive(true);//.setConnectTimeoutMillis(5 * 10000).setReadTimeoutMillis(100000);
         builder.withSocketOptions(socketOptions);
         Cluster cluster = builder.build();
@@ -27,7 +23,7 @@ public class CassandraWriteTest {
         Random rnd = new Random();
         rnd.setSeed(System.currentTimeMillis());
 
-        for (int i = 0; i < 100000; i++) {
+        for (int i = 0; i < 10000000; i++) {
             int id = rnd.nextInt();
 
             String name = RandomString.generate(16);

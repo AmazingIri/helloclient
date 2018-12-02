@@ -8,19 +8,32 @@
     <artifactId>helloclient</artifactId>
     <version>1.0-SNAPSHOT</version>
 
+    <properties>
+        <!-- Use the latest version whenever possible. -->
+        <jackson.version>2.9.7</jackson.version>
+    </properties>
     <dependencies>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>com.datastax.cassandra</groupId>
             <artifactId>cassandra-driver-core</artifactId>
             <version>3.6.0</version>
         </dependency>
-
         <dependency>
             <groupId>com.datastax.cassandra</groupId>
             <artifactId>cassandra-driver-mapping</artifactId>
             <version>2.1.2</version>
         </dependency>
-
+        <dependency>
+            <groupId>com.datastax.cassandra</groupId>
+            <artifactId>cassandra-driver-extras</artifactId>
+            <version>3.6.0</version>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.ignite</groupId>
