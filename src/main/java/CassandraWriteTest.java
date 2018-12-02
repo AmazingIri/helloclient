@@ -3,10 +3,11 @@ import com.datastax.driver.core.Cluster.Builder;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
+import com.sun.org.apache.xerces.internal.xs.StringList;
 
-/**
- * @author zxb 2015年1月29日 下午5:57:20
- */
+import java.nio.charset.Charset;
+import java.util.*;
+
 public class CassandraWriteTest {
 
     public static void main(String[] args) {
@@ -21,13 +22,45 @@ public class CassandraWriteTest {
         System.out.printf("Connected to cluster: %s\n", metadata.getClusterName());
 
         Session session = cluster.connect();
+        session.execute("TRUNCATE TABLE test.t");
 
-        for (int i = 0; i < 1; i++) {
-            String id = "" + i;
-            String names = "name" + i;
-            String sql = "insert into test.t (id,age,names) values(" + id + "," + i + ",['" + names + "'])";
-            session.execute(sql);
-            System.out.printf("row inserted, number %d\n", i);
+        Random rnd = new Random();
+        rnd.setSeed(System.currentTimeMillis());
+
+        for (int i = 0; i < 100000; i++) {
+            int id = rnd.nextInt();
+
+            String name = RandomString.generate(16);
+
+            List items = new ArrayList<String>();
+            for (int j = 0; j < 50; j++) {
+                items.add(RandomString.generate(6));
+            }
+
+            Map courses = new HashMap<String, Double>();
+            for (int j = 0; j < 50; j++) {
+                String k = RandomString.generate(4);
+                Double v = rnd.nextDouble();
+                courses.put(k, v);
+            }
+
+            Set requires = new HashSet();
+            for (int j = 0; j < 20; j++) {
+                requires.add(rnd.nextInt());
+            }
+
+
+
+            session.execute("INSERT INTO test.t (id, date, name, items, courses, requires) VALUES (?, ?, ?, ?, ?, ?)",
+                    id,
+                    System.currentTimeMillis(),
+                    name,
+                    items,
+                    courses,
+                    requires
+            );
+
+//            System.out.printf("row inserted, number %d\n", i);
         }
         cluster.close();
     }

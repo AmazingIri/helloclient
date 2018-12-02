@@ -7,6 +7,8 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
 
+import java.nio.ByteBuffer;
+
 /**
  * @author zxb 2014年12月29日 下午3:46:23
  */
@@ -29,11 +31,18 @@ public class CassandraReadTest {
         }
 
         Session session = cluster.connect();
-
-        ResultSet results = session.execute("SELECT * FROM test.t");// where id = 1");
+        ResultSet results = session.execute("SELECT * FROM test.t limit 10");
+        /// id, date, names, items, courses
         for (Row row : results) {
-            System.out.println(String.format("%-10s\t%-10s\t%-20s", row.getInt("id"), row.getInt("age"),
-                    row.getList("names", String.class)));
+            System.out.println(String.format(
+                    "%-10s\t%-10s\t%-20s",
+                    row.getInt("id"),
+                    row.getTimestamp("date"),
+                    row.getString("name"),
+                    row.getList("items", String.class),
+                    row.getMap("courses", String.class, Double.class),
+                    row.getSet("requires", Integer.class)
+            ));
         }
         cluster.close();
     }
