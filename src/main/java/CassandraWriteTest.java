@@ -18,12 +18,12 @@ public class CassandraWriteTest {
         System.out.printf("Connected to cluster: %s\n", metadata.getClusterName());
 
         Session session = cluster.connect();
-        session.execute("TRUNCATE TABLE test.t");
+        //session.execute("TRUNCATE TABLE test.t");
 
         Random rnd = new Random();
         rnd.setSeed(System.currentTimeMillis());
 
-        for (int i = 0; i < 10000000; i++) {
+        for (int i = 0; i < 1000000; i++) {
             int id = rnd.nextInt();
 
             String name = RandomString.generate(16);
