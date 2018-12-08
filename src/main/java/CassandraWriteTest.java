@@ -1,8 +1,7 @@
-import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.*;
 import com.datastax.driver.core.Cluster.Builder;
-import com.datastax.driver.core.Metadata;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.SocketOptions;
+
+import java.nio.ByteBuffer;
 import java.util.*;
 
 public class CassandraWriteTest {
@@ -14,6 +13,9 @@ public class CassandraWriteTest {
         SocketOptions socketOptions = new SocketOptions().setKeepAlive(true);//.setConnectTimeoutMillis(5 * 10000).setReadTimeoutMillis(100000);
         builder.withSocketOptions(socketOptions);
         Cluster cluster = builder.build();
+        CodecRegistry codeRegistry = cluster.getConfiguration().getCodecRegistry();
+        JsonCodec<DataObject> codec = new JsonCodec<DataObject>(DataObject.class);
+        codeRegistry.register(codec);
         Metadata metadata = cluster.getMetadata();
         System.out.printf("Connected to cluster: %s\n", metadata.getClusterName());
 
@@ -23,7 +25,7 @@ public class CassandraWriteTest {
         Random rnd = new Random();
         rnd.setSeed(System.currentTimeMillis());
 
-        for (int i = 0; i < 1000000; i++) {
+        for (int i = 0; i < 10; i++) {
             int id = rnd.nextInt();
 
             String name = RandomString.generate(16);
@@ -45,15 +47,12 @@ public class CassandraWriteTest {
                 requires.add(rnd.nextInt());
             }
 
-
-
-            session.execute("INSERT INTO test.t (id, date, name, items, courses, requires) VALUES (?, ?, ?, ?, ?, ?)",
-                    id,
-                    System.currentTimeMillis(),
-                    name,
-                    items,
-                    courses,
-                    requires
+            DataObject object = new DataObject(id, System.currentTimeMillis(),name,items,courses,requires);
+            ByteBuffer serialized = codec.serialize(object, ProtocolVersion.V5);
+            String toInsert = Arrays.toString(serialized.array());
+            System.out.println(toInsert);
+            session.execute("INSERT INTO test.t (json) VALUES (?)",
+                    toInsert
             );
 
 //            System.out.printf("row inserted, number %d\n", i);
