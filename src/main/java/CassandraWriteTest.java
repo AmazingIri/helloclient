@@ -24,8 +24,6 @@ public class CassandraWriteTest {
         rnd.setSeed(System.currentTimeMillis());
 
         for (int i = 0; i < 1000000; i++) {
-            int id = rnd.nextInt();
-
             String name = RandomString.generate(16);
 
             List items = new ArrayList<String>();
@@ -48,7 +46,7 @@ public class CassandraWriteTest {
 
 
             session.execute("INSERT INTO test.t (id, date, name, items, courses, requires) VALUES (?, ?, ?, ?, ?, ?)",
-                    id,
+                    i,
                     System.currentTimeMillis(),
                     name,
                     items,
@@ -56,7 +54,6 @@ public class CassandraWriteTest {
                     requires
             );
 
-//            System.out.printf("row inserted, number %d\n", i);
         }
         cluster.close();
     }

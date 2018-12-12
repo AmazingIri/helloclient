@@ -11,7 +11,7 @@ CREATE TABLE test.t
   courses  map<text, double>,
   requires set<int>,
   json     text
-);
+)WITH caching = {'keys' : 'NONE', 'rows_per_partition' : 'ALL'};
 
 
 INSERT INTO test.t (id, date, name, items, courses, requires, json) VALUES (?, ?, ?, ?, ?, ?, ?)

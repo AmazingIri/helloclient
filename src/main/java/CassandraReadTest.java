@@ -7,6 +7,15 @@ import java.nio.ByteBuffer;
 
 public class CassandraReadTest {
 
+    public static String GenerateQueryStr(int start, int end) {
+        String str = "SELECT * FROM test.t WHERE id IN (";
+        for (int i = start; i < end; i++) {
+            str = str.concat(String.format("%d, ", i));
+        }
+        str = str.concat(String.format("%d)", end));
+        return str;
+    }
+
     public static void main(String[] args) {
         Builder builder = Cluster.builder();
         builder.addContactPoint("127.0.0.1");
@@ -21,23 +30,32 @@ public class CassandraReadTest {
                     host.getDatacenter(), host.getAddress(), host.getRack());
         }
 
-        Session session = cluster.connect();
-        ResultSet results = session.execute("SELECT * FROM test.t");
-
         CodecRegistry codecRegistry = new CodecRegistry();
-        for (Row row : results) {
-            ColumnDefinitions columnDefinitions = row.getColumnDefinitions();
-            Object var;
-            for (ColumnDefinitions.Definition def : columnDefinitions) {
-                ByteBuffer buf = row.getBytesUnsafe(def.getName());
-                if (buf != null) {
-                    TypeCodec codec = codecRegistry.codecFor(def.getType());
-                    var = codec.deserialize(buf, ProtocolVersion.V3);
-                }
 
+        Session session = cluster.connect();
+
+
+        //for (int i = 0; i < 100000; i+=2000) {
+        for (int i = 0; i <= 10000; i++) {
+            //ResultSet results = session.execute(String.format("SELECT * FROM test.t WHERE id <= 1000000 allow filtering"));
+
+            ResultSet results = session.execute("SELECT * FROM test.t WHERE id = 2");
+            //ResultSet results = session.execute(String.format("SELECT * FROM test.t WHERE id = %d", i));
+            //String str = GenerateQueryStr(0, 99);
+            //ResultSet results = session.execute(str);
+            for (Row row : results) {
+                ColumnDefinitions columnDefinitions = row.getColumnDefinitions();
+                for (ColumnDefinitions.Definition def : columnDefinitions) {
+                    ByteBuffer buf = row.getBytesUnsafe(def.getName());
+                    if (buf != null) {
+                        TypeCodec codec = codecRegistry.codecFor(def.getType());
+                        codec.deserialize(buf, ProtocolVersion.V3);
+                    }
+
+                }
             }
-            //System.out.println("%s", var);
         }
+
         cluster.close();
     }
 }
