@@ -51,6 +51,15 @@
             <version>2.6.0</version>
         </dependency>
 
+        <dependency>
+            <groupId>gheap</groupId>
+            <artifactId>gheap</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>/home/zhiqi/local/share/java/gheap.jar</systemPath>
+        </dependency>
+
+
     </dependencies>
 
 </project>

@@ -1,11 +1,24 @@
-import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.*;
 import com.datastax.driver.core.Cluster.Builder;
-import com.datastax.driver.core.Metadata;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.SocketOptions;
+import com.datastax.driver.core.exceptions.InvalidTypeException;
+import gheap.GHeap;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.*;
 
 public class CassandraWriteTest {
+
+    private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
+    public static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for ( int j = 0; j < bytes.length; j++ ) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
 
     public static void main(String[] args) {
         Builder builder = Cluster.builder();
@@ -18,12 +31,14 @@ public class CassandraWriteTest {
         System.out.printf("Connected to cluster: %s\n", metadata.getClusterName());
 
         Session session = cluster.connect();
-        //session.execute("TRUNCATE TABLE test.t");
 
         Random rnd = new Random();
         rnd.setSeed(System.currentTimeMillis());
 
-        for (int i = 0; i < 1000000; i++) {
+        int     n            = 1000000;
+        boolean isUsingGHeap = true;
+
+        for (int i = 0; i < n; i++) {
             String name = RandomString.generate(16);
 
             List items = new ArrayList<String>();
@@ -43,16 +58,32 @@ public class CassandraWriteTest {
                 requires.add(rnd.nextInt());
             }
 
+            if (isUsingGHeap) {
+                // write for table test.s, (id int, info blob)
+                Student student = new Student(System.currentTimeMillis(), name, items, courses, requires);
+                try {
+                    byte array[] = gheap.GHeap.serialize(student, GHeap.SKIP_TRANSIENT_FIELDS);
+                    //System.out.printf("%d %s\n", i, bytesToHex(array));
 
+                    session.execute("INSERT INTO test.s (id, info) VALUES (?, ?)",
+                            i,
+                            ByteBuffer.wrap(array));
+                } catch (IOException e) {
+                    throw new InvalidTypeException(e.getMessage(), e);
+                }
 
-            session.execute("INSERT INTO test.t (id, date, name, items, courses, requires) VALUES (?, ?, ?, ?, ?, ?)",
-                    i,
-                    System.currentTimeMillis(),
-                    name,
-                    items,
-                    courses,
-                    requires
-            );
+            }
+            else {
+                // write for table test.t, (id, date, name, items, courses, requires)
+                session.execute("INSERT INTO test.t (id, date, name, items, courses, requires) VALUES (?, ?, ?, ?, ?, ?)",
+                        i,
+                        System.currentTimeMillis(),
+                        name,
+                        items,
+                        courses,
+                        requires
+                );
+            }
 
         }
         cluster.close();

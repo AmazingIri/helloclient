@@ -1,3 +1,5 @@
 *.class
 .idea
 .vscode
+*.log
+.attach_pid*
