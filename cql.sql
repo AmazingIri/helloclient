@@ -15,7 +15,7 @@ CREATE TABLE test.t
   requires set<int>,
 )WITH caching = {'keys' : 'NONE', 'rows_per_partition' : 'ALL'};
 
-SELECT id, date, name, items, courses, requires, json FROM test.t LIMIT 10;
+SELECT id, date, name, items, courses, requires FROM test.t LIMIT 10;
 
 
 // -------------------------------------------------------
@@ -31,16 +31,8 @@ CREATE TABLE test.s
 // -------------------------------------------------------
 
 
-CREATE TYPE test.info (
-  date     timestamp,
-  name     text,
-  items    list<text>,
-  courses  map<text, double>,
-  requires set<int>
-);
-
-CREATE TABLE test.student
+CREATE TABLE test.j
 (
   id    int PRIMARY KEY,
-  info  frozen <info>
+  info  VARCHAR
 )WITH caching = {'keys' : 'NONE', 'rows_per_partition' : 'ALL'};

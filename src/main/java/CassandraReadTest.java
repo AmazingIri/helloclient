@@ -3,10 +3,13 @@ import com.datastax.driver.core.Cluster.Builder;
 import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.TypeCodec;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import gheap.GHeap;
+import sun.misc.Unsafe;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.*;
 
 
 public class CassandraReadTest {
@@ -32,6 +35,8 @@ public class CassandraReadTest {
     }
 
     public static void main(String[] args) {
+
+
         Builder builder = Cluster.builder();
         builder.addContactPoint("127.0.0.1");
 
@@ -46,29 +51,60 @@ public class CassandraReadTest {
         }
 
         Session session = cluster.connect();
+        CodecRegistry codecRegistry = cluster.getConfiguration().getCodecRegistry();
 
         int n = 1000000;
-        int step = 1;
-        boolean isUsingGHeap = true;
+        int method = 1; // 1:GHeap, 2:Normal, 3:JSON & Jackson
 
-        if (isUsingGHeap) {
-            ResultSet results = session.execute(String.format("SELECT * FROM test.s WHERE id = 1 allow filtering", n));
+        try {
+            System.out.println("Sleeping; may cause fault in GHeap. If so, remove it. This has no practical use");
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            return;
+        }
+
+        ObjectMapper objectMapper = new ObjectMapper();
+
+
+        if (method == 1) {
+
+            String name = RandomString.generate(1);
+            List items = new ArrayList<String>();
+            Map courses = new HashMap<String, Double>();
+            Set requires = new HashSet();
+            Student s = new Student(System.currentTimeMillis(), name, items, courses, requires);
+
+            DataType idtype = null;
+
+
+            ResultSet result = session.execute(String.format("SELECT * FROM test.s WHERE id = 1", n));
+            for (Row row : result) {
+                ColumnDefinitions columnDefinitions = row.getColumnDefinitions();
+                idtype = columnDefinitions.getType("id");
+
+            }
+
+            ResultSet results = session.execute(String.format("SELECT * FROM test.s WHERE id <= %d allow filtering", n));
             for (Row row : results) {
                 try {
                     ByteBuffer buf = row.getBytesUnsafe("info");
                     byte[] b = new byte[buf.remaining()];
                     buf.duplicate().get(b);
-                    System.out.println(bytesToHex(b));
+                    //System.out.println(bytesToHex(b));
                     Student stu = (Student) gheap.GHeap.deserialize(b, GHeap.SKIP_TRANSIENT_FIELDS);
-                    System.out.println(stu.name);
+
+                    ByteBuffer idbuf = row.getBytesUnsafe("id");
+                    TypeCodec codec = codecRegistry.codecFor(idtype);
+                    Integer id = (Integer) codec.deserialize(idbuf, ProtocolVersion.V3);
+
+                    //System.out.println(sum + " " + id + " " + stu.name + " " + stu.date);
                 } catch (IOException e) {
                     throw new InvalidTypeException(e.getMessage(), e);
                 }
             }
         }
-        else {
+        else if (method == 2) {
             ResultSet results = session.execute(String.format("SELECT * FROM test.t WHERE id <= %d allow filtering", n));
-            CodecRegistry codecRegistry = cluster.getConfiguration().getCodecRegistry();
             for (Row row : results) {
                 ColumnDefinitions columnDefinitions = row.getColumnDefinitions();
                 for (ColumnDefinitions.Definition def : columnDefinitions) {
@@ -78,6 +114,21 @@ public class CassandraReadTest {
                         codec.deserialize(buf, ProtocolVersion.V3);
                     }
                 }
+            }
+        } else {
+            // read from table test.j, (id int, info VARCHAR)
+            ResultSet results = session.execute(String.format("SELECT * FROM test.j WHERE id <= %d allow filtering", n));
+            for (Row row : results) {
+                ByteBuffer buf = row.getBytesUnsafe("info");
+                byte[] b = new byte[buf.remaining()];
+                buf.duplicate().get(b);
+
+                try {
+                    objectMapper.readValue(b, DataObject.class);
+                } catch (IOException e) {
+                    return;
+                }
+
             }
         }
 
